@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CBC Loan Monitoring — Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{
+  --sidebar:#0F2C27; --sidebar-hover:#173B34; --sidebar-active:#1E4B42;
+  --sidebar-text:#A9BEB8; --sidebar-text-dim:#6E8580;
+  --accent:#12A594; --accent-dark:#0C8377;
+  --blue:#2451D6;
+  --bg:#F5F6F4; --card:#FFFFFF; --border:#E4E7E3;
+  --ink:#16231F; --ink-soft:#68746E;
+  --warn-bg:#FBF0D9; --warn-ink:#8A6A12;
+  --risk-bg:#FBE4E1; --risk-ink:#C13B2C;
+  --ok-bg:#E1F3EE; --ok-ink:#0C8377;
+  --radius:10px;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;font-size:14px;}
+h1,h2,h3{font-family:'Space Grotesk',sans-serif;margin:0;}
+button{font-family:inherit;cursor:pointer;}
+input,select,textarea{font-family:inherit;}
+.app-shell{display:flex;min-height:100vh;}
+.sidebar{width:260px;flex-shrink:0;background:var(--sidebar);color:var(--sidebar-text);display:flex;flex-direction:column;padding:20px 14px;}
+.sidebar-brand{display:flex;align-items:center;gap:10px;padding:6px 8px 18px;}
+.sidebar-brand .mark{width:34px;height:34px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-family:'Space Grotesk',sans-serif;font-size:14px;flex-shrink:0;}
+.sidebar-brand .name{color:#fff;font-weight:700;font-size:15px;line-height:1.2;}
+.live-pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:#8FD6C8;margin:0 4px 14px;}
+.live-pill .dot{width:6px;height:6px;border-radius:50%;background:#3FD69A;animation:pulse 1.6s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.branch-box{margin:0 4px 16px;}
+.branch-box label{font-size:10.5px;letter-spacing:.05em;color:var(--sidebar-text-dim);text-transform:uppercase;display:block;margin-bottom:6px;}
+.branch-box select{width:100%;background:var(--sidebar-hover);border:1px solid #24463F;color:#fff;border-radius:8px;padding:8px 10px;font-size:12.5px;}
+.nav-group{margin-bottom:6px;}
+.nav-group-label{font-size:10.5px;letter-spacing:.06em;color:var(--sidebar-text-dim);text-transform:uppercase;padding:14px 10px 6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--sidebar-text);font-size:13.5px;font-weight:500;cursor:pointer;margin-bottom:2px;}
+.nav-item svg{width:17px;height:17px;flex-shrink:0;}
+.nav-item:hover{background:var(--sidebar-hover);color:#fff;}
+.nav-item.active{background:var(--sidebar-active);color:#fff;font-weight:600;}
+.sidebar-footer{margin-top:auto;padding-top:14px;border-top:1px solid #1B3D36;display:flex;align-items:center;gap:10px;padding-left:8px;}
+.sidebar-footer .av{width:32px;height:32px;border-radius:50%;background:#E7A96B;color:#3A2708;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;flex-shrink:0;}
+.sidebar-footer .who b{display:block;color:#fff;font-size:13px;}
+.sidebar-footer .who span{font-size:11.5px;color:var(--sidebar-text-dim);}
+.sidebar-footer .signout{margin-left:auto;background:none;border:none;color:var(--sidebar-text-dim);font-size:11.5px;text-decoration:underline;}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{display:flex;justify-content:flex-end;align-items:center;gap:16px;padding:20px 32px 0;}
+.topbar .bell{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:#fff;position:relative;color:var(--ink-soft);}
+.topbar .bell .dot{position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--risk-ink);}
+.topbar .av{width:34px;height:34px;border-radius:50%;background:#8FD6C8;color:#0C4B41;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;}
+.content{padding:18px 32px 60px;}
+.eyebrow{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px;}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;flex-wrap:wrap;gap:12px;}
+.page-head h1{font-size:26px;color:var(--blue);font-weight:700;}
+.page-head p{margin:6px 0 0;color:var(--ink-soft);font-size:13px;}
+.greeting h1{color:var(--ink);}
+.btn{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:13px;border-radius:8px;padding:10px 16px;border:1px solid var(--border);background:#fff;color:var(--ink);white-space:nowrap;}
+.btn svg{width:15px;height:15px;}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.primary:hover{background:var(--accent-dark);}
+.btn.sm{padding:6px 11px;font-size:12px;}
+.btn.danger{color:var(--risk-ink);}
+.btn:disabled{opacity:.55;cursor:default;}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+.kpi .ic{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+.kpi .ic svg{width:17px;height:17px;}
+.kpi .lbl{font-size:12.5px;color:var(--ink-soft);}
+.kpi .val{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;margin-top:2px;}
+.kpi .delta{font-size:11.5px;margin-top:5px;color:var(--ink-soft);}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:18px;}
+.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.panel h2{font-size:16px;color:var(--blue);}
+.panel .sub{color:var(--ink-soft);font-size:12.5px;margin:2px 0 16px;}
+.two-col{display:grid;grid-template-columns:1.3fr 1fr;gap:18px;}
+.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;justify-content:space-between;}
+.filter-row .left{display:flex;gap:8px;flex-wrap:wrap;}
+.filter-row select,.filter-row input[type=text]{border:1px solid var(--border);border-radius:7px;padding:8px 11px;font-size:12.5px;background:#fff;color:var(--ink);}
+.search-box{display:flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:7px;padding:7px 11px;background:#fff;}
+.search-box svg{width:15px;height:15px;color:var(--ink-soft);}
+.search-box input{border:none;outline:none;font-size:12.5px;width:150px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);border-bottom:1px solid var(--border);padding:9px 10px;font-weight:600;}
+td{padding:11px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#FAFBF9;}
+.empty-row td{text-align:center;color:var(--ink-soft);padding:34px 10px;}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;}
+.badge.ok{background:var(--ok-bg);color:var(--ok-ink);}
+.badge.warn{background:var(--warn-bg);color:var(--warn-ink);}
+.badge.risk{background:var(--risk-bg);color:var(--risk-ink);}
+.badge.neutral{background:#EFEFEC;color:var(--ink-soft);}
+.alert-item{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);}
+.alert-item:last-child{border-bottom:none;}
+.alert-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+.alert-dot.risk{background:var(--risk-ink);}
+.alert-dot.warn{background:#C68A2E;}
+.alert-item .txt strong{font-weight:600;}
+.alert-item .meta{color:var(--ink-soft);font-size:12px;margin-top:2px;}
+.report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.report-card{border:1px solid var(--border);border-radius:var(--radius);padding:18px;background:#fff;}
+.report-card .ic{width:30px;height:30px;border-radius:8px;background:var(--ok-bg);color:var(--ok-ink);display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+.report-card h3{font-size:14.5px;color:var(--blue);margin-bottom:4px;}
+.report-card p{font-size:12px;color:var(--ink-soft);margin:0 0 12px;}
+.report-card a{font-size:12.5px;font-weight:600;color:var(--accent-dark);display:inline-flex;align-items:center;gap:4px;}
+.tabbed{display:grid;grid-template-columns:220px 1fr;gap:18px;}
+.tablist{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:8px;height:fit-content;}
+.tablist button{display:block;width:100%;text-align:left;padding:9px 12px;border-radius:7px;border:none;background:none;font-size:13px;color:var(--ink-soft);font-weight:500;margin-bottom:2px;}
+.tablist button.active{background:var(--ok-bg);color:var(--ok-ink);font-weight:600;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:5px;}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--border);border-radius:7px;padding:9px 11px;font-size:13px;color:var(--ink);background:#fff;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;}
+.toggle-row .t{font-size:13px;font-weight:500;}
+.toggle-row .d{font-size:11.5px;color:var(--ink-soft);}
+.switch{width:38px;height:22px;border-radius:999px;background:#D8DCD8;position:relative;flex-shrink:0;border:none;padding:0;}
+.switch.on{background:var(--accent);}
+.switch .knob{width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .15s;}
+.switch.on .knob{left:19px;}
+.stage-track{display:flex;align-items:center;gap:3px;}
+.stage-track .seg{width:14px;height:6px;border-radius:3px;background:#E4E7E3;}
+.stage-track .seg.filled{background:var(--accent);}
+.stage-track .seg.filled.warn{background:#C68A2E;}
+.stage-track .seg.filled.risk{background:var(--risk-ink);}
+.stage-track .lbl{font-size:11px;color:var(--ink-soft);margin-left:7px;white-space:nowrap;}
+.help-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.help-card{border:1px solid var(--border);border-radius:var(--radius);padding:18px;background:#fff;}
+.help-card h3{font-size:14.5px;color:var(--blue);margin-bottom:8px;}
+.help-card ol,.help-card ul{margin:0;padding-left:18px;color:var(--ink-soft);font-size:13px;line-height:1.8;}
+.bars{display:flex;align-items:flex-end;gap:16px;height:160px;padding:10px 0;}
+.bars .barcol{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%;}
+.bars .barcol .stack{width:70%;display:flex;flex-direction:column-reverse;border-radius:4px 4px 0 0;overflow:hidden;}
+.bars .barcol .seg{width:100%;}
+.bars .barcol .lbl{font-size:11px;color:var(--ink-soft);text-align:center;}
+.overlay{position:fixed;inset:0;background:rgba(15,25,22,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+.modal{background:#fff;border-radius:12px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding:22px 24px;}
+.modal.wide{max-width:760px;}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.modal-head h3{font-size:17px;}
+.modal-head button{background:none;border:none;color:var(--ink-soft);width:26px;height:26px;}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;position:sticky;bottom:-24px;background:#fff;padding:14px 0 2px;}
+.form-section{border-top:1px solid var(--border);margin-top:18px;padding-top:16px;}
+.form-section:first-of-type{border-top:none;margin-top:0;padding-top:0;}
+.form-section h4{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent-dark);margin:0 0 12px;display:flex;align-items:center;gap:8px;}
+.form-section h4 .num{width:20px;height:20px;border-radius:50%;background:var(--ok-bg);color:var(--ok-ink);display:inline-flex;align-items:center;justify-content:center;font-size:11px;}
+.field-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.field-row4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;}
+.mini-note{font-size:11.5px;color:var(--ink-soft);margin:-6px 0 10px;}
+.mini-table{width:100%;border-collapse:collapse;margin-bottom:14px;}
+.mini-table th{font-size:10px;padding:5px 4px;background:#FAFBF9;border-bottom:1px solid var(--border);}
+.mini-table td{padding:4px;border-bottom:none;}
+.mini-table input{width:100%;border:1px solid var(--border);border-radius:5px;padding:6px 7px;font-size:12px;}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--ink);color:#fff;padding:12px 18px;border-radius:8px;font-size:13px;z-index:200;opacity:0;transform:translateY(8px);transition:all .2s;max-width:320px;}
+.toast.show{opacity:1;transform:translateY(0);}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--sidebar);}
+.login-card{background:#fff;border-radius:14px;padding:36px 32px;width:100%;max-width:380px;}
+.login-card .mark{width:44px;height:44px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-family:'Space Grotesk',sans-serif;margin-bottom:16px;}
+.login-card h2{font-size:20px;margin-bottom:4px;}
+.login-card p{color:var(--ink-soft);font-size:13px;margin:0 0 20px;}
+.login-err{background:var(--risk-bg);color:var(--risk-ink);border-radius:8px;padding:9px 12px;font-size:12.5px;margin-bottom:14px;}
+.hidden{display:none !important;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-thumb{background:#D5D9D4;border-radius:6px;}
+@media(max-width:960px){.kpi-row{grid-template-columns:repeat(2,1fr);}.two-col,.report-grid,.help-grid,.tabbed{grid-template-columns:1fr;}.sidebar{width:210px;}.field-row3,.field-row4{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<!-- ======================= LOGIN SCREEN ======================= -->
+<div class="login-wrap" id="loginScreen">
+  <div class="login-card">
+    <div class="mark">CBC</div>
+    <h2>CBC Loan Monitoring</h2>
+    <p>Sign in with your staff account to continue.</p>
+    <div class="login-err hidden" id="loginErr"></div>
+    <form id="loginForm">
+      <div class="field"><label>Email</label><input name="email" type="email" required autocomplete="username"></div>
+      <div class="field"><label>Password</label><input name="password" type="password" required autocomplete="current-password"></div>
+      <button class="btn primary" type="submit" style="width:100%;justify-content:center;" id="loginBtn">Sign in</button>
+    </form>
+    <p style="font-size:11.5px;margin-top:16px;">Need a config? Set <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> near the top of the script, then have an admin create your account in Supabase Authentication.</p>
+  </div>
+</div>
+
+<!-- ======================= APP SHELL ======================= -->
+<div class="app-shell hidden" id="appShell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <div class="topbar">
+      <div class="bell"><span class="dot" id="alertDot" style="display:none;"></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      </div>
+      <div class="av" id="topAv">–</div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+<div id="modalRoot"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIG — fill these in with your Supabase project's values:
+   Project → Settings → API → Project URL / anon public key
+   ============================================================ */
+const SUPABASE_URL = 'https://wcketeysehpyrgkuvvbj.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indja2V0ZXlzZWhweXJna3V2dmJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1Njg2NjcsImV4cCI6MjEwMjE0NDY2N30.Tq9lv2iTX0NtIN-Ph7sVSva4ycKX1vu9GWG0Ya71xoo';
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ---------- ICONS ---------- */
+const I = {
+  grid:'<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>',
+  file:'<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5"/>',
+  users:'<circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/><circle cx="17" cy="8.5" r="2.6"/><path d="M15.5 14.2c2.7.4 4.9 2.5 4.9 5.8"/>',
+  sliders:'<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h13M21 18h-1"/><circle cx="15" cy="6" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="19" cy="18" r="2"/>',
+  calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/>',
+  report:'<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+  clipboard:'<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1M9 12l2 2 4-4"/>',
+  shield:'<path d="M12 2l8 3.5v6c0 5-3.4 8.6-8 10.5C7.4 20.1 4 16.5 4 11.5v-6z"/><path d="M9 12l2 2 4-4"/>',
+  folder:'<path d="M3 6a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  landmark:'<path d="M3 21h18M4 21V9M20 21V9M2 9l10-6 10 6M8 21v-6M12 21v-6M16 21v-6"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21a2 2 0 11-4 0v-.2a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H3a2 2 0 110-4h.2a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.6V3a2 2 0 114 0v.2a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.6 1H21a2 2 0 110 4h-.2a1.7 1.7 0 00-1.6 1z"/>',
+  help:'<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 115.8 1c0 2-3 2-3 4M12 17h.01"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  download:'<path d="M12 3v13M6 11l6 6 6-6M4 21h16"/>',
+  x:'<path d="M18 6L6 18M6 6l12 12"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>'
+};
+function ic(name,cls){return '<svg class="'+(cls||'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+I[name]+'</svg>';}
+
+/* ---------- GLOBAL STATE (local cache, kept in sync via realtime) ---------- */
+let state = {branches:[],profiles:[],products:[],clients:[],applications:[],documents:[],evaluations:[],creditScores:[],disbursements:[],repayments:[],settings:{},auditLog:[]};
+let currentUser = null, currentProfile = null;
+let currentView = 'overview', branchFilter = '', settingsTab = 'general';
+const STAGES = ['Received','Document verification','Credit evaluation','Committee approval','Approved','Disbursed'];
+
+/* ---------- HELPERS ---------- */
+const peso = n => '\u20B1'+Math.round(n||0).toLocaleString();
+const fmtDate = ts => ts ? new Date(ts).toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'}) : '—';
+function branchName(id){ return (state.branches.find(b=>b.id===id)||{}).name || '—'; }
+function productName(id){ return (state.products.find(p=>p.id===id)||{}).name || '—'; }
+function clientName(id){ return (state.clients.find(c=>c.id===id)||{}).name || '—'; }
+function branchOptions(sel){ return state.branches.map(b=>'<option value="'+b.id+'"'+(b.id===sel?' selected':'')+'>'+b.name+'</option>').join(''); }
+function productOptions(sel){ return state.products.map(p=>'<option value="'+p.id+'"'+(p.id===sel?' selected':'')+'>'+p.name+'</option>').join(''); }
+function clientOptions(sel){ return '<option value="">— new client / new applicant —</option>'+state.clients.map(c=>'<option value="'+c.id+'"'+(c.id===sel?' selected':'')+'>'+c.name+'</option>').join(''); }
+function appOptions(list,sel){ return list.map(a=>'<option value="'+a.id+'"'+(a.id===sel?' selected':'')+'>'+a.code+' — '+a.applicant_name+'</option>').join(''); }
+function slaStatus(days){ const sla = state.settings.sla_days||3; if(days>sla) return 'risk'; if(days===sla) return 'warn'; return 'ok'; }
+function daysSince(ts){ return Math.max(0, Math.floor((Date.now()-new Date(ts).getTime())/86400000)); }
+function requiredDocsFor(productId){
+  const p = state.products.find(x=>x.id===productId);
+  const base = ['Valid ID','Proof of membership','Application form'];
+  if(!p) return base;
+  if(/agri/i.test(p.name)) return base.concat(['Land title / tenancy proof','Farm plan & budget']);
+  if(/business/i.test(p.name)) return base.concat(['Business permit','Latest financial statement']);
+  if(/salary/i.test(p.name)) return base.concat(['Certificate of employment','Latest 2 payslips']);
+  return base.concat(['Collateral document']);
+}
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2800); }
+function downloadCSV(filename, rows){
+  const csv = rows.map(r=>r.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); URL.revokeObjectURL(a.href);
+}
+function filteredApplications(){ return branchFilter ? state.applications.filter(a=>a.branch_id===branchFilter) : state.applications; }
+function dbErr(error){ if(error){ showToast('Error: '+error.message); return true; } return false; }
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ============================================================
+   DATA LAYER — every read/write goes through Supabase.
+   ============================================================ */
+async function fetchTable(name){
+  const map = {
+    branches: ()=> sb.from('branches').select('*').order('name'),
+    profiles: ()=> sb.from('profiles').select('*'),
+    products: ()=> sb.from('products').select('*').order('name'),
+    clients: ()=> sb.from('clients').select('*').order('name'),
+    applications: ()=> sb.from('v_applications').select('*').order('created_at',{ascending:false}),
+    documents: ()=> sb.from('documents').select('*'),
+    evaluations: ()=> sb.from('evaluations').select('*'),
+    creditScores: ()=> sb.from('credit_scores').select('*'),
+    disbursements: ()=> sb.from('disbursements').select('*'),
+    repayments: ()=> sb.from('repayments').select('*').order('due_date'),
+    settings: ()=> sb.from('settings').select('*').single(),
+    auditLog: ()=> sb.from('audit_log').select('*').order('created_at',{ascending:false}).limit(200)
+  };
+  const {data, error} = await map[name]();
+  if(dbErr(error)) return;
+  state[name] = data;
+}
+async function loadAll(){
+  await Promise.all(['branches','profiles','products','clients','applications','documents','evaluations','creditScores','disbursements','repayments','settings','auditLog'].map(fetchTable));
+}
+function docsFor(appId){ return state.documents.filter(d=>d.application_id===appId); }
+function evalFor(appId){ return state.evaluations.filter(e=>e.application_id===appId).sort((a,b)=>new Date(b.assigned_at)-new Date(a.assigned_at))[0]; }
+function scoreFor(appId){ return state.creditScores.find(s=>s.application_id===appId); }
+
+/* ---------- REALTIME: keep every open tab in sync ---------- */
+function subscribeRealtime(){
+  const tables = ['branches','profiles','products','clients','applications','documents','evaluations','credit_scores','disbursements','repayments','settings'];
+  const keyMap = {credit_scores:'creditScores'};
+  tables.forEach(t=>{
+    sb.channel('rt-'+t).on('postgres_changes', {event:'*', schema:'public', table:t}, async ()=>{
+      await fetchTable(keyMap[t]||t);
+      renderAll();
+    }).subscribe();
+  });
+}
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+async function loadProfile(){
+  const {data,error} = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  if(!error) currentProfile = data;
+}
+function showLogin(msg){
+  document.getElementById('appShell').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  const err = document.getElementById('loginErr');
+  if(msg){ err.textContent = msg; err.classList.remove('hidden'); } else { err.classList.add('hidden'); }
+}
+async function showApp(){
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('appShell').classList.remove('hidden');
+  await loadAll();
+  subscribeRealtime();
+  renderAll();
+}
+document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  document.getElementById('loginBtn').disabled = true;
+  const {data, error} = await sb.auth.signInWithPassword({email:fd.get('email'), password:fd.get('password')});
+  document.getElementById('loginBtn').disabled = false;
+  if(error){ showLogin(error.message); return; }
+  currentUser = data.user; await loadProfile(); await showApp();
+});
+sb.auth.onAuthStateChange((event, session)=>{
+  if(event==='SIGNED_OUT'){ currentUser=null; currentProfile=null; showLogin(); }
+});
+(async function init(){
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){ currentUser = session.user; await loadProfile(); await showApp(); }
+  else showLogin();
+})();
+
+/* ============================================================
+   NAV + SIDEBAR
+   ============================================================ */
+const NAV = [
+  {items:[
+    {id:'overview',label:'Overview',icon:'grid'},
+    {id:'applications',label:'Loan applications',icon:'file'},
+    {id:'clients',label:'Clients',icon:'users'},
+    {id:'products',label:'Loan products',icon:'sliders'},
+    {id:'repayments',label:'Repayments',icon:'calendar'},
+    {id:'reports',label:'Reports',icon:'report'},
+  ]},
+  {label:'Loan workflow', items:[
+    {id:'evaluation',label:'Evaluation monitoring',icon:'clipboard'},
+    {id:'scoring',label:'Credit scoring',icon:'shield'},
+    {id:'docs',label:'Document center',icon:'folder'},
+    {id:'approval',label:'Approval queue',icon:'check'},
+    {id:'disbursements',label:'Disbursements',icon:'landmark'},
+    {id:'collections',label:'Collections',icon:'calendar'},
+    {id:'risk',label:'Risk & alerts',icon:'shield'},
+  ]},
+  {label:'Administration', items:[
+    {id:'branches',label:'Branches',icon:'landmark'},
+    {id:'users',label:'Users & roles',icon:'shield'},
+  ]}
+];
+const FOOTER_NAV = [{id:'settings',label:'Settings',icon:'gear'},{id:'help',label:'Help center',icon:'help'}];
+
+function renderSidebar(){
+  const sb2 = document.getElementById('sidebar');
+  let html = '<div class="sidebar-brand"><div class="mark">CBC</div><div class="name">CBC Loan<br>Monitoring</div></div>';
+  html += '<div class="live-pill"><span class="dot"></span>Live — synced across all staff</div>';
+  html += '<div class="branch-box"><label>Branch</label><select id="branchSelect"><option value="">All branches</option>'+branchOptions(branchFilter)+'</select></div>';
+  NAV.forEach(group=>{
+    html += '<div class="nav-group">';
+    if(group.label) html += '<div class="nav-group-label">'+group.label+'</div>';
+    group.items.forEach(it=>{ html += '<div class="nav-item'+(currentView===it.id?' active':'')+'" data-nav="'+it.id+'">'+ic(it.icon)+'<span>'+it.label+'</span></div>'; });
+    html += '</div>';
+  });
+  html += '<div style="flex:1"></div><div class="nav-group" style="border-top:1px solid #1B3D36;padding-top:10px;">';
+  FOOTER_NAV.forEach(it=>{ html += '<div class="nav-item'+(currentView===it.id?' active':'')+'" data-nav="'+it.id+'">'+ic(it.icon)+'<span>'+it.label+'</span></div>'; });
+  html += '</div>';
+  const name = currentProfile ? currentProfile.full_name : (currentUser? currentUser.email : '—');
+  const role = currentProfile ? currentProfile.role : '';
+  const initials = (name||'?').split(' ').map(x=>x[0]).slice(0,2).join('').toUpperCase();
+  html += '<div class="sidebar-footer"><div class="av">'+initials+'</div><div class="who"><b>'+name+'</b><span>'+role+'</span></div><button class="signout" id="signOutBtn">Sign out</button></div>';
+  sb2.innerHTML = html;
+  sb2.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click',()=>{ currentView=el.dataset.nav; renderAll(); }));
+  document.getElementById('branchSelect').value = branchFilter;
+  document.getElementById('branchSelect').addEventListener('change', e=>{ branchFilter=e.target.value; renderAll(); });
+  document.getElementById('signOutBtn').addEventListener('click', ()=>sb.auth.signOut());
+  document.getElementById('topAv').textContent = initials;
+}
+
+/* ---------- MODAL ---------- */
+function openModal(title, bodyHTML, onSubmit, submitLabel, wide){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = '<div class="overlay"><div class="modal'+(wide?' wide':'')+'"><div class="modal-head"><h3>'+title+'</h3><button type="button" id="mClose">'+ic('x')+'</button></div><form id="mForm" novalidate>'+bodyHTML+'<div class="modal-foot"><button type="button" class="btn" id="mCancel">Cancel</button><button type="submit" class="btn primary" id="mSubmit">'+(submitLabel||'Save')+'</button></div></form></div></div>';
+  const close = ()=>{ root.innerHTML=''; };
+  document.getElementById('mClose').onclick = close;
+  document.getElementById('mCancel').onclick = close;
+  document.getElementById('mForm').onsubmit = async (e)=>{
+    e.preventDefault();
+    const formEl = e.target;
+    if(!formEl.checkValidity()){ formEl.reportValidity(); return; }
+    const fd = new FormData(formEl); const data = {}; for(const [k,v] of fd.entries()) data[k]=v;
+    document.getElementById('mSubmit').disabled = true;
+    await onSubmit(data, close);
+    document.getElementById('mSubmit').disabled = false;
+  };
+  return close;
+}
+
+/* ============================================================
+   ROUTER
+   ============================================================ */
+function renderAll(){
+  renderSidebar();
+  const map = {overview:renderOverview, applications:renderApplications, clients:renderClients, products:renderProducts, repayments:renderRepayments, reports:renderReports, evaluation:renderEvaluation, scoring:renderScoring, docs:renderDocs, approval:renderApproval, disbursements:renderDisbursements, collections:renderCollections, risk:renderRisk, branches:renderBranches, users:renderUsers, settings:renderSettings, help:renderHelp};
+  document.getElementById('content').innerHTML = '';
+  (map[currentView]||renderOverview)();
+  const alerts = computeAlertsLocal();
+  document.getElementById('alertDot').style.display = alerts.length ? 'block' : 'none';
+}
+
+/* Client-side mirror of v_risk_alerts, used for quick badges without a round trip */
+function computeAlertsLocal(){
+  const alerts = [];
+  filteredApplications().forEach(a=>{
+    if(['Disbursed','Rejected'].includes(a.stage)) return;
+    if(a.days_in_stage > (state.settings.sla_days||3)) alerts.push({priority:'High', text:a.applicant_name+' — SLA breached at '+a.stage, meta:branchName(a.branch_id)+' · '+a.days_in_stage+' days in stage · '+a.code, owner:a.officer||'Unassigned'});
+  });
+  state.repayments.forEach(r=>{
+    if(r.status==='Pending' && new Date(r.due_date).getTime() < Date.now()){
+      const dpd = daysSince(r.due_date);
+      alerts.push({priority: dpd>30?'High':'Medium', text: clientName(r.client_id)+' — payment '+dpd+' days past due', meta:(r.loan_ref||'')+' · '+peso(r.amount_due)+' due '+fmtDate(r.due_date), owner:'Collections'});
+    }
+  });
+  return alerts;
+}
+
+/* ============================================================
+   OVERVIEW
+   ============================================================ */
+function renderOverview(){
+  const apps = filteredApplications();
+  const active = apps.filter(a=>!['Disbursed','Rejected'].includes(a.stage));
+  const portfolio = apps.filter(a=>a.stage==='Disbursed').reduce((s,a)=>s+Number(a.amount),0);
+  const clientIds = new Set(apps.map(a=>a.client_id).filter(Boolean));
+  const alerts = computeAlertsLocal();
+  const dueSoon = state.repayments.filter(r=>r.status==='Pending' && new Date(r.due_date).getTime()>Date.now() && new Date(r.due_date).getTime()-Date.now() < 3*86400000);
+  const stageCounts = STAGES.slice(0,5).map(s=>apps.filter(a=>a.stage===s).length);
+  const maxCount = Math.max(1,...stageCounts);
+  const colors = ['#12A594','#2451D6','#8A6AD6','#C68A2E','#0C8377'];
+  const c = document.getElementById('content');
+  c.innerHTML = `
+  <div class="page-head greeting"><div><div class="eyebrow">${new Date().toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric'})}</div><h1>Good day, ${(currentProfile&&currentProfile.full_name)||'there'} 👋</h1></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;"><button class="btn primary" data-action="newClient">${ic('plus')} Add for evaluation client</button><button class="btn primary" data-action="newApp">${ic('plus')} New loan application</button><button class="btn primary" data-action="newDisbursement">${ic('plus')} For release client</button></div></div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="ic" style="background:var(--ok-bg);color:var(--ok-ink);">${ic('landmark')}</div><div class="lbl">Active portfolio</div><div class="val">${peso(portfolio)}</div><div class="delta">Disbursed &amp; outstanding</div></div>
+    <div class="kpi"><div class="ic" style="background:#EAF0FB;color:var(--blue);">${ic('file')}</div><div class="lbl">Applications</div><div class="val">${apps.length}</div><div class="delta">${active.length} active in pipeline</div></div>
+    <div class="kpi"><div class="ic" style="background:var(--warn-bg);color:var(--warn-ink);">${ic('clock')}</div><div class="lbl">Awaiting review</div><div class="val">${apps.filter(a=>['Received','Document verification','Credit evaluation'].includes(a.stage)).length}</div><div class="delta">Needs officer action</div></div>
+    <div class="kpi"><div class="ic" style="background:#F1E9FB;color:#7A4FC9;">${ic('users')}</div><div class="lbl">Active clients</div><div class="val">${clientIds.size||state.clients.length}</div><div class="delta">Across all branches</div></div>
+  </div>
+  <div class="two-col">
+    <div class="panel"><div class="panel-head"><h2>Application pipeline</h2></div><p class="sub">Live count by current stage${branchFilter?' — '+branchName(branchFilter):''}</p>
+    ${apps.length ? `<div class="bars">${STAGES.slice(0,5).map((s,i)=>`<div class="barcol"><div class="stack" style="height:${Math.max(6,(stageCounts[i]/maxCount)*130)}px;"><div class="seg" style="height:100%;background:${colors[i]};"></div></div><div class="lbl">${stageCounts[i]}<br>${s}</div></div>`).join('')}</div>` : `<div style="padding:40px 0;color:var(--ink-soft);text-align:center;">No applications yet.</div>`}</div>
+    <div class="panel"><div class="panel-head"><h2>Needs your attention</h2></div><p class="sub">Live from the database</p>
+    ${alerts.length===0 && dueSoon.length===0 ? '<div style="color:var(--ink-soft);font-size:13px;">Nothing flagged right now.</div>' : ''}
+    ${alerts.slice(0,3).map(a=>`<div class="alert-item"><div class="alert-dot ${a.priority==='High'?'risk':'warn'}"></div><div class="txt"><strong>${a.text}</strong><div class="meta">${a.meta}</div></div></div>`).join('')}
+    ${dueSoon.slice(0,2).map(r=>`<div class="alert-item"><div class="alert-dot warn"></div><div class="txt"><strong>${clientName(r.client_id)} — payment due soon</strong><div class="meta">${peso(r.amount_due)} due ${fmtDate(r.due_date)}</div></div></div>`).join('')}</div>
+  </div>
+  <div class="panel"><div class="panel-head"><h2>Recent applications</h2></div><p class="sub">Latest 6 records</p>
+  <table><thead><tr><th>Applicant</th><th>Branch</th><th>Amount</th><th>Stage</th><th>Days in stage</th></tr></thead>
+  <tbody>${apps.slice(0,6).map(a=>rowStageHTML(a)).join('') || '<tr class="empty-row"><td colspan="5">No records yet.</td></tr>'}</tbody></table></div>`;
+  wireQuickActions();
+}
+function rowStageHTML(a){ const st=slaStatus(a.days_in_stage); return `<tr><td>${a.applicant_name}<div style="font-size:11px;color:var(--ink-soft)">${a.code}</div></td><td>${branchName(a.branch_id)}</td><td>${peso(a.amount)}</td><td>${stageTrack(a.stage,st)}</td><td><span class="badge ${st}">${a.days_in_stage}d</span></td></tr>`; }
+function stageTrack(stage,status){ const idx=STAGES.indexOf(stage); let seg=''; for(let i=0;i<5;i++){ let cls='seg'+(i<=idx?' filled'+(i===idx&&status!=='ok'?' '+status:''):''); seg+='<div class="'+cls+'"></div>'; } return '<div class="stage-track">'+seg+'<span class="lbl">'+stage+'</span></div>'; }
+function wireQuickActions(){
+  document.querySelectorAll('[data-action]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const act = el.dataset.action;
+      if(act==='newApp') return modalNewApplication();
+      if(act==='newClient') return modalNewClient(true);
+      if(act==='newDisbursement') return modalCreateDisbursement();
+    });
+  });
+}
+
+/* ============================================================
+   APPLICATIONS
+   ============================================================ */
+function renderApplications(){
+  const c = document.getElementById('content');
+  c.innerHTML = `<div class="page-head"><div><h1>Loan applications</h1><p>Create, review, and advance every loan request through the pipeline.</p></div><button class="btn primary" data-action="newApp">${ic('plus')} New application</button></div>
+  <div class="panel"><div class="filter-row"><div class="left"><select id="fStage"><option value="">All stages</option>${STAGES.map(s=>'<option>'+s+'</option>').join('')}</select><select id="fSla"><option value="">All statuses</option><option value="ok">On track</option><option value="warn">Near SLA</option><option value="risk">SLA breached</option></select></div><div class="search-box">${ic('search')}<input type="text" id="fSearch" placeholder="Search applicant or ID"></div></div>
+  <table><thead><tr><th>Applicant</th><th>Branch</th><th>Product</th><th>Amount</th><th>Stage</th><th>Days</th><th>Officer</th><th></th></tr></thead><tbody id="appTbody"></tbody></table></div>`;
+  wireQuickActions();
+  const draw = ()=>{
+    const stage=document.getElementById('fStage').value, sla=document.getElementById('fSla').value, q=document.getElementById('fSearch').value.toLowerCase();
+    let rows = filteredApplications();
+    if(stage) rows = rows.filter(a=>a.stage===stage);
+    if(sla) rows = rows.filter(a=>slaStatus(a.days_in_stage)===sla);
+    if(q) rows = rows.filter(a=>(a.applicant_name+a.code).toLowerCase().includes(q));
+    document.getElementById('appTbody').innerHTML = rows.length ? rows.map(a=>{
+      const st = slaStatus(a.days_in_stage); const nextIdx = STAGES.indexOf(a.stage)+1;
+      return `<tr><td>${a.applicant_name}<div style="font-size:11px;color:var(--ink-soft)">${a.code}</div></td><td>${branchName(a.branch_id)}</td><td>${productName(a.product_id)}</td><td>${peso(a.amount)}</td><td>${stageTrack(a.stage,st)}</td><td><span class="badge ${st}">${a.days_in_stage}d</span></td><td>${a.officer||'—'}</td><td>${nextIdx<STAGES.length?`<button class="btn sm" data-adv="${a.id}">Advance →</button>`:`<span class="badge ok">Complete</span>`}</td></tr>`;
+    }).join('') : '<tr class="empty-row"><td colspan="8">No records match your search.</td></tr>';
+    document.querySelectorAll('[data-adv]').forEach(b=>b.addEventListener('click', ()=>advanceStage(b.dataset.adv)));
+  };
+  ['fStage','fSla'].forEach(id=>document.getElementById(id).addEventListener('change',draw));
+  document.getElementById('fSearch').addEventListener('input',draw);
+  draw();
+}
+async function advanceStage(id){
+  const a = state.applications.find(x=>x.id===id); if(!a) return;
+  const idx = STAGES.indexOf(a.stage); if(idx>=STAGES.length-1) return;
+  const nextStage = STAGES[idx+1];
+  const {error} = await sb.from('applications').update({stage:nextStage, stage_entered_at:new Date().toISOString()}).eq('id', id);
+  if(dbErr(error)) return;
+  if(nextStage==='Document verification' && docsFor(id).length===0){
+    const reqDocs = requiredDocsFor(a.product_id);
+    await sb.from('documents').insert(reqDocs.map(name=>({application_id:id, doc_name:name})));
+  }
+  showToast('Moved to '+nextStage);
+  await fetchTable('applications'); await fetchTable('documents'); renderAll();
+}
+
+/* ============================================================
+   CLIENT INFORMATION FORM — shared field builder
+   Mirrors the CBC "Client Information Form (Individual) — Borrower"
+   Used by both "New loan application" (new applicant) and "Add client".
+   ============================================================ */
+function cifOptions(list){ return list.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join(''); }
+function cifFieldsHTML(prefix, req){
+  const R = req ? ' required' : '';
+  return `
+  <div class="form-section">
+    <h4><span class="num">1</span>Personal information</h4>
+    <div class="field-row4">
+      <div class="field"><label>Title</label><select name="${prefix}Title"><option value="">—</option>${cifOptions(['Ms.','Mrs.','Atty.','Mr.','Dr.','Others'])}</select></div>
+      <div class="field" style="grid-column:span 3;"></div>
+    </div>
+    <div class="field-row3">
+      <div class="field"><label>Last name*</label><input name="${prefix}LastName"${R}></div>
+      <div class="field"><label>First name*</label><input name="${prefix}FirstName"${R}></div>
+      <div class="field"><label>Middle name</label><input name="${prefix}MiddleName"></div>
+    </div>
+    <div class="field-row3">
+      <div class="field"><label>Suffix</label><input name="${prefix}Suffix" placeholder="Jr., Sr., III"></div>
+      <div class="field"><label>Nickname</label><input name="${prefix}NickName"></div>
+      <div class="field"><label>Citizenship*</label><input name="${prefix}Citizenship" value="Filipino"${R}></div>
+    </div>
+    <div class="field-row3">
+      <div class="field"><label>Birthdate*</label><input type="date" name="${prefix}Birthdate"${R}></div>
+      <div class="field"><label>Place of birth — city/municipality*</label><input name="${prefix}BirthCity"${R}></div>
+      <div class="field"><label>Place of birth — province*</label><input name="${prefix}BirthProvince"${R}></div>
+    </div>
+    <div class="field"><label>Present address (unit/house/street, barangay, city/municipality, province, postal code)*</label><input name="${prefix}PresentAddress" placeholder="e.g. 12 Rizal St., Brgy. San Gabriel, Tuguegarao City, Cagayan, 3500"${R}></div>
+    <div class="field"><label>Permanent address (leave blank if same as present)</label><input name="${prefix}PermanentAddress"></div>
+    <div class="field-row">
+      <div class="field"><label>Preferred mailing address*</label><select name="${prefix}PreferredMailing"${R}><option value="">—</option>${cifOptions(['Present Address','Permanent Address','Both'])}</select></div>
+      <div class="field"><label>Civil status*</label><select name="${prefix}CivilStatus" id="${prefix}CivilStatusSelect"${R}><option value="">—</option>${cifOptions(['Single','Married','Separated','Live-in','Widow/er','Annulled'])}</select></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Tax identification no.</label><input name="${prefix}Tin"></div>
+      <div class="field"><label>SSS / GSIS no.</label><input name="${prefix}SssGsis"></div>
+    </div>
+    <div class="field-row3">
+      <div class="field"><label>Mobile phone*</label><input name="${prefix}MobilePhone"${R}></div>
+      <div class="field"><label>Telephone</label><input name="${prefix}Telephone"></div>
+      <div class="field"><label>Email address</label><input type="email" name="${prefix}Email"></div>
+    </div>
+    <div class="field-row3">
+      <div class="field"><label>Father's last name*</label><input name="${prefix}FatherLastName"${R}></div>
+      <div class="field"><label>Father's first name*</label><input name="${prefix}FatherFirstName"${R}></div>
+      <div class="field"><label>Father's middle name</label><input name="${prefix}FatherMiddleName"></div>
+    </div>
+    <div class="field-row3">
+      <div class="field"><label>Mother's maiden last name*</label><input name="${prefix}MotherLastName"${R}></div>
+      <div class="field"><label>Mother's maiden first name*</label><input name="${prefix}MotherFirstName"${R}></div>
+      <div class="field"><label>Mother's maiden middle name</label><input name="${prefix}MotherMiddleName"></div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h4><span class="num">2</span>Financial information</h4>
+    <div class="field-row">
+      <div class="field"><label>Employment status*</label><select name="${prefix}EmploymentStatus"${R}><option value="">—</option>${cifOptions(['Employed','Unemployed','Retired','Self-employed','Student'])}</select></div>
+      <div class="field"><label>Occupation*</label><select name="${prefix}Occupation"${R}><option value="">—</option>${cifOptions(['Government Employee','Professional Practitioner','Business Owner','Farmer/Fisherman','Private Employee','Politician','Others'])}</select></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Source of funds*</label><select name="${prefix}SourceOfFunds"${R}><option value="">—</option>${cifOptions(['Salary','Business','Remittance','Allowance','Pension','Donation','Inheritance','Lottery/Winnings','Income from Sale of Property','Honorarium','Others'])}</select></div>
+      <div class="field"><label>Estimated gross annual income*</label><select name="${prefix}AnnualIncome"${R}><option value="">—</option>${cifOptions(['Below ₱100,000','₱100,000.01–₱500,000','₱500,000.01–₱1,000,000','Above ₱1,000,000'])}</select></div>
+    </div>
+    <div class="field"><label>Purpose of account opening*</label><select name="${prefix}AccountPurpose"${R}><option value="">—</option>${cifOptions(['Savings','Business','Remittance','Investment','Payroll','Loan','Others'])}</select></div>
+    <div class="mini-note">If employed:</div>
+    <div class="field-row">
+      <div class="field"><label>Employer's name</label><input name="${prefix}EmployerName"></div>
+      <div class="field"><label>Employer's address</label><input name="${prefix}EmployerAddress"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Position</label><input name="${prefix}Position"></div>
+      <div class="field"><label>Employed since</label><input type="date" name="${prefix}EmployedSince"></div>
+    </div>
+    <div class="mini-note">If self-employed:</div>
+    <div class="field-row">
+      <div class="field"><label>Business name</label><input name="${prefix}BusinessName"></div>
+      <div class="field"><label>Business address</label><input name="${prefix}BusinessAddress"></div>
+    </div>
+    <div class="field"><label>Nature of business</label><input name="${prefix}NatureOfBusiness"></div>
+    <div class="mini-note">If politician:</div>
+    <div class="field-row3">
+      <div class="field"><label>Level</label><select name="${prefix}PoliticianLevel"><option value="">—</option>${cifOptions(['National','Local','Barangay'])}</select></div>
+      <div class="field"><label>Position</label><input name="${prefix}PoliticianPosition"></div>
+      <div class="field"><label>Date elected</label><input type="date" name="${prefix}DateElected"></div>
+    </div>
+    <div class="field-row3">
+      <div class="field"><label>Office address</label><input name="${prefix}OfficeAddress"></div>
+      <div class="field"><label>Monthly gross salary</label><input type="number" step="0.01" name="${prefix}PoliticianSalary"></div>
+      <div class="field"><label># years as politician</label><input type="number" name="${prefix}YearsAsPolitician"></div>
+    </div>
+    <div class="mini-note">If farmer:</div>
+    <div class="field-row">
+      <div class="field"><label>Total hectares owned</label><input type="number" step="0.01" name="${prefix}FarmerHectares"></div>
+      <div class="field"><label>Type(s) of crop cultivated</label><input name="${prefix}FarmerCrops" placeholder="e.g. Palay, Corn, Vegetable, Fruits"></div>
+    </div>
+  </div>
+
+  <div class="form-section" id="${prefix}SpouseSection">
+    <h4><span class="num">3</span>Spouse information <span style="font-weight:400;text-transform:none;color:var(--ink-soft);">(only required if civil status is Married)</span></h4>
+    <div class="field-row3">
+      <div class="field"><label>Spouse last name</label><input name="${prefix}SpouseLastName"></div>
+      <div class="field"><label>Spouse first name</label><input name="${prefix}SpouseFirstName"></div>
+      <div class="field"><label>Spouse middle name</label><input name="${prefix}SpouseMiddleName"></div>
+    </div>
+    <div class="field-row3">
+      <div class="field"><label>Nickname</label><input name="${prefix}SpouseNickName"></div>
+      <div class="field"><label>Birthdate</label><input type="date" name="${prefix}SpouseBirthdate"></div>
+      <div class="field"><label>Citizenship</label><input name="${prefix}SpouseCitizenship" value="Filipino"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Highest educational attainment</label><select name="${prefix}SpouseEducation"><option value="">—</option>${cifOptions(['Primary (Elementary)','Secondary (High School)','Technical/Vocational','College Degree','Post-Graduate (Masteral/Doctorate)','No Formal Schooling'])}</select></div>
+      <div class="field"><label>Employment status</label><select name="${prefix}SpouseEmploymentStatus"><option value="">—</option>${cifOptions(['Employed','Retired','Student','Unemployed','Self-employed'])}</select></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Tax identification no.</label><input name="${prefix}SpouseTin"></div>
+      <div class="field"><label>SSS / GSIS no.</label><input name="${prefix}SpouseSssGsis"></div>
+    </div>
+    <div class="field-row3">
+      <div class="field"><label>Mobile phone</label><input name="${prefix}SpouseMobilePhone"></div>
+      <div class="field"><label>Telephone</label><input name="${prefix}SpouseTelephone"></div>
+      <div class="field"><label>Email address</label><input type="email" name="${prefix}SpouseEmail"></div>
+    </div>
+    <div class="mini-note">Spouse occupation &amp; income (if employed / self-employed / politician):</div>
+    <div class="field-row">
+      <div class="field"><label>Occupation</label><select name="${prefix}SpouseOccupation"><option value="">—</option>${cifOptions(['Government Employee','Professional Practitioner','Business Owner','Farmer/Fisherman','Private Employee','Politician','Others'])}</select></div>
+      <div class="field"><label>Employer's name / Business name</label><input name="${prefix}SpouseEmployerOrBusiness"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Address (employer/business/office)</label><input name="${prefix}SpouseWorkAddress"></div>
+      <div class="field"><label>Position / Nature of business</label><input name="${prefix}SpousePosition"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Employed since / Date elected</label><input type="date" name="${prefix}SpouseEmployedSince"></div>
+      <div class="field"><label>Gross monthly salary</label><input type="number" step="0.01" name="${prefix}SpouseSalary"></div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h4><span class="num">4</span>Other information</h4>
+    <div class="mini-note">Beneficiary:</div>
+    <div class="field-row">
+      <div class="field"><label>Beneficiary name</label><input name="${prefix}BeneficiaryName"></div>
+      <div class="field"><label>Beneficiary date of birth</label><input type="date" name="${prefix}BeneficiaryDob"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Beneficiary address</label><input name="${prefix}BeneficiaryAddress"></div>
+      <div class="field"><label>Beneficiary occupation</label><input name="${prefix}BeneficiaryOccupation"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Beneficiary place of birth</label><input name="${prefix}BeneficiaryBirthplace"></div>
+      <div class="field"><label>Beneficiary source of fund</label><input name="${prefix}BeneficiarySourceOfFund"></div>
+    </div>
+
+    <div class="mini-note">Dependents (up to 3):</div>
+    <table class="mini-table"><thead><tr><th>Name</th><th>Residential address</th><th>Date of birth</th><th>Employment status</th><th>Relationship</th></tr></thead>
+    <tbody>
+      ${[1,2,3].map(i=>`<tr><td><input name="${prefix}Dep${i}Name"></td><td><input name="${prefix}Dep${i}Address"></td><td><input type="date" name="${prefix}Dep${i}Dob"></td><td><input name="${prefix}Dep${i}EmpStatus"></td><td><input name="${prefix}Dep${i}Relationship"></td></tr>`).join('')}
+    </tbody></table>
+
+    <div class="mini-note">Bank accounts owned (3 most active):</div>
+    <table class="mini-table"><thead><tr><th>Bank name</th><th>Branch/address</th><th>Type of account</th><th>Account no.</th><th>Date opened</th></tr></thead>
+    <tbody>
+      ${[1,2,3].map(i=>`<tr><td><input name="${prefix}Bank${i}Name"></td><td><input name="${prefix}Bank${i}Branch"></td><td><input name="${prefix}Bank${i}Type"></td><td><input name="${prefix}Bank${i}AcctNo"></td><td><input type="date" name="${prefix}Bank${i}DateOpened"></td></tr>`).join('')}
+    </tbody></table>
+
+    <div class="mini-note">Credit cards owned (3 most active):</div>
+    <table class="mini-table"><thead><tr><th>Card company</th><th>Bank issuer</th><th>Credit limit</th><th>Card number</th><th>Expiry date</th></tr></thead>
+    <tbody>
+      ${[1,2,3].map(i=>`<tr><td><input name="${prefix}Cc${i}Company"></td><td><input name="${prefix}Cc${i}Issuer"></td><td><input type="number" name="${prefix}Cc${i}Limit"></td><td><input name="${prefix}Cc${i}Number"></td><td><input type="date" name="${prefix}Cc${i}Expiry"></td></tr>`).join('')}
+    </tbody></table>
+  </div>
+
+  <div class="form-section">
+    <h4><span class="num">5</span>Miscellaneous*</h4>
+    <div class="field-row">
+      <div class="field"><label>Past or pending cases against applicant?*</label><select name="${prefix}PendingCase"${R}><option value="">—</option><option>No</option><option>Yes</option></select></div>
+      <div class="field"><label>If yes — nature, plaintiff, amount, status</label><input name="${prefix}PendingCaseDetails"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Bank account ever closed (mishandling/bounced checks)?*</label><select name="${prefix}BankClosed"${R}><option value="">—</option><option>No</option><option>Yes</option></select></div>
+      <div class="field"><label>If yes — bank name, nature, amount</label><input name="${prefix}BankClosedDetails"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Related to a CBC employee?*</label><select name="${prefix}RelatedEmployee"${R}><option value="">—</option><option>No</option><option>Yes</option></select></div>
+      <div class="field-row" style="gap:12px;">
+        <div class="field"><label>If yes — employee name</label><input name="${prefix}RelatedEmployeeName"></div>
+        <div class="field"><label>Relationship</label><input name="${prefix}RelatedEmployeeRelationship"></div>
+      </div>
+    </div>
+  </div>`;
+}
+function cifRowVal(data,prefix,field){ return (data[prefix+field]||'').toString().trim(); }
+function buildClientPayloadFromForm(data, prefix){
+  const v = (f)=>cifRowVal(data,prefix,f);
+  const fullName = [v('FirstName'), v('MiddleName'), v('LastName')].filter(Boolean).join(' ') + (v('Suffix')?' '+v('Suffix'):'');
+  const personal_info = {
+    title:v('Title'), last_name:v('LastName'), first_name:v('FirstName'), middle_name:v('MiddleName'), suffix:v('Suffix'),
+    nick_name:v('NickName'), citizenship:v('Citizenship'), birthdate:v('Birthdate')||null,
+    birth_city:v('BirthCity'), birth_province:v('BirthProvince'),
+    present_address:v('PresentAddress'), permanent_address:v('PermanentAddress')||v('PresentAddress'),
+    preferred_mailing:v('PreferredMailing'), civil_status:v('CivilStatus'), tin:v('Tin'), sss_gsis:v('SssGsis'),
+    mobile_phone:v('MobilePhone'), telephone:v('Telephone'), email:v('Email'),
+    father:{last_name:v('FatherLastName'), first_name:v('FatherFirstName'), middle_name:v('FatherMiddleName')},
+    mother:{last_name:v('MotherLastName'), first_name:v('MotherFirstName'), middle_name:v('MotherMiddleName')}
+  };
+  const financial_info = {
+    employment_status:v('EmploymentStatus'), occupation:v('Occupation'), source_of_funds:v('SourceOfFunds'),
+    annual_income:v('AnnualIncome'), account_purpose:v('AccountPurpose'),
+    employer_name:v('EmployerName'), employer_address:v('EmployerAddress'), position:v('Position'), employed_since:v('EmployedSince')||null,
+    business_name:v('BusinessName'), business_address:v('BusinessAddress'), nature_of_business:v('NatureOfBusiness'),
+    politician_level:v('PoliticianLevel'), politician_position:v('PoliticianPosition'), date_elected:v('DateElected')||null,
+    office_address:v('OfficeAddress'), politician_salary:v('PoliticianSalary')||null, years_as_politician:v('YearsAsPolitician')||null,
+    farmer_hectares:v('FarmerHectares')||null, farmer_crops:v('FarmerCrops')
+  };
+  const spouse_info = {
+    last_name:v('SpouseLastName'), first_name:v('SpouseFirstName'), middle_name:v('SpouseMiddleName'), nick_name:v('SpouseNickName'),
+    birthdate:v('SpouseBirthdate')||null, citizenship:v('SpouseCitizenship'), education:v('SpouseEducation'),
+    employment_status:v('SpouseEmploymentStatus'), tin:v('SpouseTin'), sss_gsis:v('SpouseSssGsis'),
+    mobile_phone:v('SpouseMobilePhone'), telephone:v('SpouseTelephone'), email:v('SpouseEmail'),
+    occupation:v('SpouseOccupation'), employer_or_business:v('SpouseEmployerOrBusiness'), work_address:v('SpouseWorkAddress'),
+    position:v('SpousePosition'), employed_since:v('SpouseEmployedSince')||null, salary:v('SpouseSalary')||null
+  };
+  const dependents = [1,2,3].map(i=>({
+    name:v('Dep'+i+'Name'), address:v('Dep'+i+'Address'), dob:v('Dep'+i+'Dob')||null, employment_status:v('Dep'+i+'EmpStatus'), relationship:v('Dep'+i+'Relationship')
+  })).filter(d=>d.name);
+  const bank_accounts = [1,2,3].map(i=>({
+    bank_name:v('Bank'+i+'Name'), branch:v('Bank'+i+'Branch'), type:v('Bank'+i+'Type'), account_no:v('Bank'+i+'AcctNo'), date_opened:v('Bank'+i+'DateOpened')||null
+  })).filter(b=>b.bank_name);
+  const credit_cards = [1,2,3].map(i=>({
+    company:v('Cc'+i+'Company'), issuer:v('Cc'+i+'Issuer'), limit:v('Cc'+i+'Limit')||null, number:v('Cc'+i+'Number'), expiry:v('Cc'+i+'Expiry')||null
+  })).filter(c=>c.company);
+  const other_info = {
+    beneficiary:{ name:v('BeneficiaryName'), dob:v('BeneficiaryDob')||null, address:v('BeneficiaryAddress'), occupation:v('BeneficiaryOccupation'), birthplace:v('BeneficiaryBirthplace'), source_of_fund:v('BeneficiarySourceOfFund') },
+    dependents, bank_accounts, credit_cards,
+    misc:{
+      pending_case: v('PendingCase')==='Yes', pending_case_details:v('PendingCaseDetails'),
+      bank_closed: v('BankClosed')==='Yes', bank_closed_details:v('BankClosedDetails'),
+      related_employee: v('RelatedEmployee')==='Yes', related_employee_name:v('RelatedEmployeeName'), related_employee_relationship:v('RelatedEmployeeRelationship')
+    }
+  };
+  return { name: fullName, personal_info, financial_info, spouse_info, other_info, created_by: currentUser.id };
+}
+function wireSpouseToggle(prefix){
+  const civilSelect = document.getElementById(prefix+'CivilStatusSelect');
+  const spouseSection = document.getElementById(prefix+'SpouseSection');
+  if(!civilSelect || !spouseSection) return;
+  const toggle = ()=>{
+    const isMarried = civilSelect.value === 'Married';
+    spouseSection.style.display = isMarried ? '' : 'none';
+    spouseSection.querySelectorAll('input,select').forEach(el=>{
+      if(el.dataset.origRequired===undefined) el.dataset.origRequired = el.required ? '1' : '0';
+      el.required = isMarried ? (el.dataset.origRequired==='1') : false;
+      if(!isMarried) el.value = '';
+    });
+  };
+  civilSelect.addEventListener('change', toggle);
+  toggle();
+}
+function cifRequiredOk(data, prefix){
+  const v = (f)=>cifRowVal(data,prefix,f);
+  const must = ['LastName','FirstName','Citizenship','Birthdate','BirthCity','BirthProvince','PresentAddress','PreferredMailing','CivilStatus','MobilePhone','FatherLastName','FatherFirstName','MotherLastName','MotherFirstName','EmploymentStatus','Occupation','SourceOfFunds','AnnualIncome','AccountPurpose','PendingCase','BankClosed','RelatedEmployee'];
+  return must.every(f=>v(f));
+}
+
+/* ============================================================
+   NEW LOAN APPLICATION — client picker + full CIF form + loan details
+   ============================================================ */
+function modalNewApplication(prefill){
+  const bodyHTML = `
+    <div class="form-section" style="margin-top:0;padding-top:0;border-top:none;">
+      <h4><span class="num">0</span>Applicant</h4>
+      <div class="field"><label>Existing client (pick to skip the form below) — or leave as "new" to register a new applicant</label><select name="clientId" id="napClientSelect">${clientOptions(prefill&&prefill.clientId)}</select></div>
+    </div>
+    <div id="napNewApplicantFields">${cifFieldsHTML('nap', true)}</div>
+    <div class="form-section">
+      <h4><span class="num">6</span>Loan details</h4>
+      <div class="field-row">
+        <div class="field"><label>Branch*</label><select name="branch" required>${branchOptions()}</select></div>
+        <div class="field"><label>Loan product*</label><select name="loanType" required>${productOptions()}</select></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Amount requested (₱)*</label><input name="amount" type="number" min="1000" step="1000" required placeholder="50000"></div>
+        <div class="field"><label>Officer assigned</label><input name="officer" placeholder="e.g. J. Domingo"></div>
+      </div>
+    </div>
+  `;
+  const close = openModal('New loan application', bodyHTML, async (data,close)=>{
+    let clientId = data.clientId;
+    if(!clientId){
+      if(!cifRequiredOk(data,'nap')){ showToast('Please complete all required (*) applicant fields'); return; }
+      const payload = buildClientPayloadFromForm(data,'nap');
+      const {data:cl,error} = await sb.from('clients').insert(payload).select().single();
+      if(dbErr(error)) return; clientId = cl.id;
+    }
+    const applicant = clientName(clientId) !== '—' ? clientName(clientId) : (data.napFirstName ? [data.napFirstName,data.napLastName].join(' ') : 'Applicant');
+    const {data:app, error} = await sb.from('applications').insert({applicant_name:applicant, client_id:clientId, branch_id:data.branch, product_id:data.loanType, amount:Number(data.amount), officer:data.officer||'', created_by:currentUser.id}).select().single();
+    if(dbErr(error)) return;
+    showToast('Application '+app.code+' created'); close();
+    await fetchTable('applications'); await fetchTable('clients'); currentView='applications'; renderAll();
+  }, 'Create application', true);
+  setTimeout(()=>{
+    const sel = document.getElementById('napClientSelect');
+    const fieldsWrap = document.getElementById('napNewApplicantFields');
+    const toggle = ()=>{
+      const isExisting = !!sel.value;
+      fieldsWrap.style.display = isExisting ? 'none' : '';
+      fieldsWrap.querySelectorAll('input,select').forEach(el=>{
+        if(el.dataset.origRequired===undefined) el.dataset.origRequired = el.required ? '1' : '0';
+        el.required = isExisting ? false : (el.dataset.origRequired==='1');
+      });
+    };
+    sel.addEventListener('change', toggle);
+    toggle();
+    wireSpouseToggle('nap');
+  },0);
+}
+
+/* ============================================================
+   CLIENTS
+   ============================================================ */
+function renderClients(){
+  const c = document.getElementById('content');
+  c.innerHTML = `<div class="page-head"><div><h1>Clients</h1><p>Maintain borrower records and client requirements.</p></div><button class="btn primary" data-action="addClient">${ic('plus')} Add client</button></div>
+  <div class="panel"><div class="filter-row"><div></div><div class="search-box">${ic('search')}<input type="text" id="cSearch" placeholder="Search clients"></div></div>
+  <table><thead><tr><th>Client</th><th>Employment</th><th>Mobile</th><th>Civil status</th><th>Status</th></tr></thead><tbody id="clientTbody"></tbody></table></div>`;
+  document.querySelector('[data-action="addClient"]').addEventListener('click',()=>modalNewClient(false));
+  const draw = ()=>{
+    const q = document.getElementById('cSearch').value.toLowerCase();
+    const rows = state.clients.filter(cl=>(cl.name||'').toLowerCase().includes(q));
+    document.getElementById('clientTbody').innerHTML = rows.length ? rows.map(cl=>{
+      const pi = cl.personal_info||{}, fi = cl.financial_info||{};
+      return `<tr><td>${cl.name}</td><td>${fi.employment_status||'—'}</td><td>${pi.mobile_phone||'—'}</td><td>${pi.civil_status||'—'}</td><td><span class="badge ok">${cl.status||'Active'}</span></td></tr>`;
+    }).join('') : '<tr class="empty-row"><td colspan="5">No records match your search.</td></tr>';
+  };
+  document.getElementById('cSearch').addEventListener('input',draw); draw();
+}
+function modalNewClient(andApp){
+  const bodyHTML = cifFieldsHTML('nc', true);
+  openModal('Add client', bodyHTML, async (data,close)=>{
+    if(!cifRequiredOk(data,'nc')){ showToast('Please complete all required (*) fields'); return; }
+    const payload = buildClientPayloadFromForm(data,'nc');
+    const {data:cl,error} = await sb.from('clients').insert(payload).select().single();
+    if(dbErr(error)) return;
+    showToast('Client added'); close(); await fetchTable('clients');
+    if(andApp) modalNewApplication({clientId:cl.id}); else renderAll();
+  }, 'Add client', true);
+  wireSpouseToggle('nc');
+}
+
+/* ============================================================
+   PRODUCTS
+   ============================================================ */
+function renderProducts(){
+  const c = document.getElementById('content');
+  c.innerHTML = `<div class="page-head"><div><h1>Loan products</h1><p>Configure lending products, rates, and eligibility.</p></div><button class="btn primary" data-action="addProduct">${ic('plus')} Add loan product</button></div>
+  <div class="panel"><table><thead><tr><th>Product</th><th>Interest rate</th><th>Term (months)</th><th>Eligibility</th></tr></thead>
+  <tbody>${state.products.map(p=>`<tr><td>${p.name}</td><td>${p.rate}% / month</td><td>${p.term}</td><td>${p.eligibility||'—'}</td></tr>`).join('') || '<tr class="empty-row"><td colspan="4">No products yet.</td></tr>'}</tbody></table></div>`;
+  document.querySelector('[data-action="addProduct"]').addEventListener('click',()=>{
+    openModal('Add loan product', `<div class="field"><label>Product name</label><input name="name" required placeholder="e.g. Housing Loan"></div>
+    <div class="field-row"><div class="field"><label>Interest rate (%/month)</label><input name="rate" type="number" step="0.1" value="${state.settings.default_rate||1.5}"></div><div class="field"><label>Term (months)</label><input name="term" type="number" value="12"></div></div>
+    <div class="field"><label>Eligibility requirements</label><textarea name="eligibility" rows="3"></textarea></div>`, async (data,close)=>{
+      const {error} = await sb.from('products').insert({name:data.name, rate:Number(data.rate), term:Number(data.term), eligibility:data.eligibility});
+      if(dbErr(error)) return; showToast('Loan product added'); close(); await fetchTable('products'); renderAll();
+    }, 'Add product');
+  });
+}
+
+/* ============================================================
+   REPAYMENTS
+   ============================================================ */
+function renderRepayments(){
+  const c = document.getElementById('content');
+  c.innerHTML = `<div class="page-head"><div><h1>Repayments</h1><p>Track collections, due dates, and payment history.</p></div><button class="btn primary" data-action="recordPayment">${ic('plus')} Record payment</button></div>
+  <div class="panel"><div class="filter-row"><div class="left"><select id="rStatus"><option value="">All statuses</option><option>Pending</option><option>Paid</option></select></div><div class="search-box">${ic('search')}<input type="text" id="rSearch" placeholder="Search client"></div></div>
+  <table><thead><tr><th>Client</th><th>Loan &amp; installment</th><th>Amount due</th><th>Due date</th><th>Status</th></tr></thead><tbody id="repTbody"></tbody></table></div>`;
+  document.querySelector('[data-action="recordPayment"]').addEventListener('click',modalRecordPayment);
+  const draw = ()=>{
+    const status=document.getElementById('rStatus').value, q=document.getElementById('rSearch').value.toLowerCase();
+    let rows = state.repayments.filter(r=>(!status||r.status===status) && clientName(r.client_id).toLowerCase().includes(q));
+    document.getElementById('repTbody').innerHTML = rows.length ? rows.map(r=>{
+      const overdue = r.status==='Pending' && new Date(r.due_date).getTime()<Date.now();
+      return `<tr><td>${clientName(r.client_id)}</td><td>${r.loan_ref||'—'}</td><td>${peso(r.amount_due)}</td><td>${fmtDate(r.due_date)}</td><td><span class="badge ${r.status==='Paid'?'ok':overdue?'risk':'warn'}">${r.status==='Paid'?'Paid '+fmtDate(r.paid_date):overdue?'Overdue':'Pending'}</span></td></tr>`;
+    }).join('') : '<tr class="empty-row"><td colspan="5">No records match your search.</td></tr>';
+  };
+  document.getElementById('rStatus').addEventListener('change',draw); document.getElementById('rSearch').addEventListener('input',draw); draw();
+}
+function modalRecordPayment(){
+  const pending = state.repayments.filter(r=>r.status==='Pending');
+  openModal('Record payment', `<div class="field"><label>Existing installment (optional)</label><select name="existing">${['<option value="">— new manual entry —</option>'].concat(pending.map(r=>'<option value="'+r.id+'">'+clientName(r.client_id)+' — '+(r.loan_ref||'')+' ('+peso(r.amount_due)+')</option>')).join('')}</select></div>
+  <div class="field"><label>Client (for manual entry)</label><select name="clientId">${clientOptions()}</select></div>
+  <div class="field-row"><div class="field"><label>Loan reference</label><input name="loanRef" placeholder="e.g. CBC-1004 / installment 1"></div><div class="field"><label>Amount (₱)</label><input name="amount" type="number" min="0" step="100"></div></div>
+  <div class="field"><label>Due date</label><input name="dueDate" type="date"></div>`, async (data,close)=>{
+    if(data.existing){
+      const {error} = await sb.from('repayments').update({status:'Paid', paid_date:new Date().toISOString()}).eq('id', data.existing);
+      if(dbErr(error)) return;
+    } else {
+      if(!data.clientId){ showToast('Select a client'); return; }
+      const {error} = await sb.from('repayments').insert({client_id:data.clientId, loan_ref:data.loanRef||'Manual entry', amount_due:Number(data.amount||0), due_date:data.dueDate||new Date().toISOString().slice(0,10), status:'Paid', paid_date:new Date().toISOString()});
+      if(dbErr(error)) return;
+    }
+    showToast('Payment recorded'); close(); await fetchTable('repayments'); renderAll();
+  }, 'Record payment');
+}
+
+/* ============================================================
+   REPORTS
+   ============================================================ */
+function renderReports(){
+  const c = document.getElementById('content');
+  const cards = [
+    {id:'portfolio',title:'Portfolio summary',desc:'Outstanding balances, releases, and collections'},
+    {id:'pipeline',title:'Application pipeline',desc:'Application volume and approval conversion'},
+    {id:'delinquency',title:'Delinquency report',desc:'Past-due loans by branch and aging'},
+    {id:'officer',title:'Loan officer performance',desc:'Portfolio performance by assigned officer'},
+    {id:'collection',title:'Repayment collection',desc:'Payments received by date and product'},
+    {id:'demographics',title:'Client demographics',desc:'Borrower profiles and location distribution'}
+  ];
+  c.innerHTML = `<div class="page-head"><div><h1>Reports</h1><p>Export operational and portfolio reports straight from the database.</p></div></div>
+  <div class="report-grid">${cards.map(card=>`<div class="report-card"><div class="ic">${ic('report')}</div><h3>${card.title}</h3><p>${card.desc}</p><a href="#" data-report="${card.id}">${ic('download')} Generate report (.csv)</a></div>`).join('')}</div>`;
+  c.querySelectorAll('[data-report]').forEach(a=>a.addEventListener('click', e=>{ e.preventDefault(); generateReport(a.dataset.report); }));
+}
+function generateReport(type){
+  const apps = filteredApplications();
+  if(type==='portfolio') downloadCSV('portfolio-summary.csv', [['Application','Applicant','Branch','Stage','Amount'], ...apps.map(a=>[a.code,a.applicant_name,branchName(a.branch_id),a.stage,a.amount])]);
+  else if(type==='pipeline') downloadCSV('application-pipeline.csv', [['Stage','Count'], ...STAGES.map(s=>[s, apps.filter(a=>a.stage===s).length])]);
+  else if(type==='delinquency'){ const overdue = state.repayments.filter(r=>r.status==='Pending' && new Date(r.due_date).getTime()<Date.now()); downloadCSV('delinquency-report.csv', [['Client','Loan reference','Amount due','Due date','Days past due'], ...overdue.map(r=>[clientName(r.client_id),r.loan_ref,r.amount_due,fmtDate(r.due_date),daysSince(r.due_date)])]); }
+  else if(type==='officer'){ const byOfficer={}; apps.forEach(a=>{ const o=a.officer||'Unassigned'; byOfficer[o]=(byOfficer[o]||0)+1; }); downloadCSV('loan-officer-performance.csv', [['Officer','Applications handled'], ...Object.entries(byOfficer)]); }
+  else if(type==='collection'){ const paid = state.repayments.filter(r=>r.status==='Paid'); downloadCSV('repayment-collection.csv', [['Client','Loan reference','Amount','Paid date'], ...paid.map(r=>[clientName(r.client_id),r.loan_ref,r.amount_due,fmtDate(r.paid_date)])]); }
+  else if(type==='demographics') downloadCSV('client-demographics.csv', [['Client','Employment status','Civil status'], ...state.clients.map(cl=>[cl.name,(cl.financial_info||{}).employment_status,(cl.personal_info||{}).civil_status])]);
+  showToast('Report downloaded');
+}
+
+/* ============================================================
+   EVALUATION MONITORING
+   ============================================================ */
+function renderEvaluation(){
+  const rows = filteredApplications().filter(a=>['Document verification','Credit evaluation'].includes(a.stage));
+  const c = document.getElementById('content');
+  c.innerHTML = wsHeader('Underwriting workbench','Evaluation monitoring','Track underwriting work, investigator assignments, and turnaround times.','Assign evaluator', rows.length, rows.filter(a=>a.days_in_stage>(state.settings.sla_days||3)).length);
+  c.innerHTML += `<div class="panel"><div class="panel-head"><h2>Evaluation monitoring queue</h2></div><p class="sub">Live across ${branchFilter?branchName(branchFilter):'all branches'}.</p>
+  <table><thead><tr><th>Application</th><th>Applicant</th><th>Assigned to</th><th>Stage</th><th>Days</th><th></th></tr></thead>
+  <tbody>${rows.length ? rows.map(a=>{const st=slaStatus(a.days_in_stage); const ev=evalFor(a.id); return `<tr><td>${a.code}</td><td>${a.applicant_name}</td><td>${ev?ev.assigned_to:'<span class="badge neutral">Unassigned</span>'}</td><td>${a.stage}</td><td><span class="badge ${st}">${a.days_in_stage}d</span></td><td><button class="btn sm" data-assign="${a.id}">Assign</button> <button class="btn sm" data-adv2="${a.id}">Advance →</button></td></tr>`;}).join('') : '<tr class="empty-row"><td colspan="6">No records match your search.</td></tr>'}</tbody></table></div>`;
+  document.querySelector('[data-action="assignEval"]').addEventListener('click',()=>modalAssignEvaluator());
+  c.querySelectorAll('[data-assign]').forEach(b=>b.addEventListener('click',()=>modalAssignEvaluator(b.dataset.assign)));
+  c.querySelectorAll('[data-adv2]').forEach(b=>b.addEventListener('click',()=>advanceStage(b.dataset.adv2)));
+}
+function modalAssignEvaluator(appId){
+  const pool = filteredApplications().filter(a=>['Document verification','Credit evaluation'].includes(a.stage));
+  openModal('Assign evaluator', `<div class="field"><label>Application</label><select name="appId">${appOptions(pool, appId)}</select></div><div class="field"><label>Evaluator name</label><input name="assignedTo" required placeholder="e.g. R. Cauilan"></div>`, async (data,close)=>{
+    const {error} = await sb.from('evaluations').insert({application_id:data.appId, assigned_to:data.assignedTo});
+    if(dbErr(error)) return;
+    const a = state.applications.find(x=>x.id===data.appId);
+    if(a && a.stage==='Received') await sb.from('applications').update({stage:'Document verification', stage_entered_at:new Date().toISOString()}).eq('id', data.appId);
+    showToast('Evaluator assigned'); close(); await fetchTable('evaluations'); await fetchTable('applications'); renderAll();
+  }, 'Assign');
+}
+
+/* ============================================================
+   CREDIT SCORING
+   ============================================================ */
+function renderScoring(){
+  const rows = filteredApplications().filter(a=>a.stage==='Credit evaluation' || scoreFor(a.id));
+  const c = document.getElementById('content');
+  c.innerHTML = wsHeader('Credit decision engine','Credit scoring','Review borrower risk scores, contributing factors, and credit decisions. Scored server-side.','Run scorecard', rows.length, rows.filter(a=>{const s=scoreFor(a.id); return s&&s.decision==='Recommend decline';}).length);
+  c.innerHTML += `<div class="panel"><div class="panel-head"><h2>Credit scoring queue</h2></div><p class="sub">Live across ${branchFilter?branchName(branchFilter):'all branches'}.</p>
+  <table><thead><tr><th>Application</th><th>Applicant</th><th>Score</th><th>Risk band</th><th>Debt-to-income</th><th>Decision</th></tr></thead>
+  <tbody>${rows.length ? rows.map(a=>{const s=scoreFor(a.id); return `<tr><td>${a.code}</td><td>${a.applicant_name}</td><td>${s?s.score:'—'}</td><td>${s?'<span class="badge '+(s.risk_band==='Low'?'ok':s.risk_band==='Medium'?'warn':'risk')+'">'+s.risk_band+'</span>':'<span class="badge neutral">Not scored</span>'}</td><td>${s?s.dti+'%':'—'}</td><td>${s?s.decision:'—'}</td></tr>`;}).join('') : '<tr class="empty-row"><td colspan="6">No records match your search.</td></tr>'}</tbody></table></div>`;
+  document.querySelector('[data-action="runScorecard"]').addEventListener('click',modalRunScorecard);
+}
+function modalRunScorecard(){
+  const pool = filteredApplications().filter(a=>a.stage==='Credit evaluation');
+  if(!pool.length){ openModal('Run scorecard', '<p style="color:var(--ink-soft);font-size:13px;">No applications are in Credit evaluation right now.</p>', (d,close)=>close(), 'Close'); return; }
+  openModal('Run scorecard', `<div class="field"><label>Application</label><select name="appId" required>${appOptions(pool)}</select></div>`, async (data,close)=>{
+    const {data:result, error} = await sb.rpc('run_credit_scorecard', {p_application_id:data.appId});
+    if(dbErr(error)) return;
+    const r = result[0];
+    showToast('Scorecard generated — '+r.score+' ('+r.risk_band+' risk)'); close(); await fetchTable('creditScores'); renderAll();
+  }, 'Run scorecard');
+}
+
+/* ============================================================
+   DOCUMENT CENTER
+   ============================================================ */
+function renderDocs(){
+  const rows = filteredApplications().filter(a=>a.stage!=='Received' || docsFor(a.id).length);
+  const c = document.getElementById('content');
+  const incomplete = rows.filter(a=>{ const d=docsFor(a.id); return d.length && d.some(x=>!x.verified); });
+  c.innerHTML = wsHeader('Document verification','Document center','Verify required borrower documents and follow up on missing files.','Open checklist', rows.length, incomplete.length);
+  c.innerHTML += `<div class="panel"><div class="panel-head"><h2>Document center queue</h2></div><p class="sub">Live across ${branchFilter?branchName(branchFilter):'all branches'}.</p>
+  <table><thead><tr><th>Application</th><th>Applicant</th><th>Required files</th><th>Verified</th><th>Status</th><th></th></tr></thead>
+  <tbody>${rows.length ? rows.map(a=>{const d=docsFor(a.id); const verified=d.filter(x=>x.verified).length; const done=d.length && verified>=d.length; return `<tr><td>${a.code}</td><td>${a.applicant_name}</td><td>${d.length}</td><td>${verified}</td><td><span class="badge ${done?'ok':'warn'}">${done?'Complete':'Incomplete'}</span></td><td><button class="btn sm" data-checklist="${a.id}">Open checklist</button></td></tr>`;}).join('') : '<tr class="empty-row"><td colspan="6">No records match your search.</td></tr>'}</tbody></table></div>`;
+  document.querySelector('[data-action="openChecklist"]').addEventListener('click',()=>modalChecklist());
+  c.querySelectorAll('[data-checklist]').forEach(b=>b.addEventListener('click',()=>modalChecklist(b.dataset.checklist)));
+}
+async function modalChecklist(appId){
+  const pool = filteredApplications();
+  if(!pool.length){ openModal('Document checklist', '<p style="color:var(--ink-soft);font-size:13px;">No applications yet.</p>', (d,close)=>close(), 'Close'); return; }
+  const id = appId || pool[0].id;
+  const a = state.applications.find(x=>x.id===id);
+  let d = docsFor(id);
+  if(!d.length){
+    const reqDocs = requiredDocsFor(a.product_id);
+    await sb.from('documents').insert(reqDocs.map(name=>({application_id:id, doc_name:name})));
+    await fetchTable('documents'); d = docsFor(id);
+  }
+  const listHTML = '<div id="dcList">'+d.map(doc=>`<label style="display:flex;gap:8px;align-items:center;padding:7px 0;font-size:13px;"><input type="checkbox" data-doc="${doc.id}" ${doc.verified?'checked':''}> ${doc.doc_name}</label>`).join('')+'</div>';
+  openModal('Document checklist', '<div class="field"><label>Application</label><select id="dcApp">'+appOptions(pool,id)+'</select></div>'+listHTML, (data,close)=>close(), 'Close');
+  document.getElementById('dcApp').addEventListener('change', e=>{ document.getElementById('modalRoot').innerHTML=''; modalChecklist(e.target.value); });
+  document.querySelectorAll('#dcList [data-doc]').forEach(cb=>cb.addEventListener('change', async e=>{
+    const {error} = await sb.from('documents').update({verified:e.target.checked, verified_at:e.target.checked?new Date().toISOString():null, verified_by:e.target.checked?currentUser.id:null}).eq('id', e.target.dataset.doc);
+    if(dbErr(error)) return;
+    await fetchTable('documents'); renderAll();
+  }));
+}
+
+/* ============================================================
+   APPROVAL QUEUE
+   ============================================================ */
+function renderApproval(){
+  const rows = filteredApplications().filter(a=>a.stage==='Committee approval');
+  const c = document.getElementById('content');
+  c.innerHTML = wsHeader('Approval authority','Approval queue','Review ready cases, approve credit decisions, or return applications for revision.','Open decision queue', rows.length, 0);
+  c.innerHTML += `<div class="panel"><div class="panel-head"><h2>Approval queue</h2></div><p class="sub">Live across ${branchFilter?branchName(branchFilter):'all branches'}.</p>
+  <table><thead><tr><th>Application</th><th>Applicant</th><th>Loan amount</th><th>Score</th><th>Evaluator</th><th></th></tr></thead>
+  <tbody>${rows.length ? rows.map(a=>{const s=scoreFor(a.id); const ev=evalFor(a.id); return `<tr><td>${a.code}</td><td>${a.applicant_name}</td><td>${peso(a.amount)}</td><td>${s?s.score+' ('+s.risk_band+')':'Not scored'}</td><td>${ev?ev.assigned_to:'—'}</td><td><button class="btn sm primary" data-approve="${a.id}">Approve</button> <button class="btn sm danger" data-return="${a.id}">Return</button></td></tr>`;}).join('') : '<tr class="empty-row"><td colspan="6">No records match your search.</td></tr>'}</tbody></table></div>`;
+  c.querySelectorAll('[data-approve]').forEach(b=>b.addEventListener('click', async ()=>{ const {error}=await sb.from('applications').update({stage:'Approved', stage_entered_at:new Date().toISOString()}).eq('id', b.dataset.approve); if(dbErr(error))return; showToast('Application approved'); await fetchTable('applications'); renderAll(); }));
+  c.querySelectorAll('[data-return]').forEach(b=>b.addEventListener('click', async ()=>{ const {error}=await sb.from('applications').update({stage:'Document verification', stage_entered_at:new Date().toISOString()}).eq('id', b.dataset.return); if(dbErr(error))return; showToast('Returned for revision'); await fetchTable('applications'); renderAll(); }));
+  document.querySelector('[data-action="openQueue"]').addEventListener('click',()=>showToast(rows.length+' case(s) awaiting decision'));
+}
+
+/* ============================================================
+   DISBURSEMENTS
+   ============================================================ */
+function renderDisbursements(){
+  const rows = filteredApplications().filter(a=>a.stage==='Approved');
+  const c = document.getElementById('content');
+  c.innerHTML = wsHeader('Loan release','Disbursements','Release approved loans and monitor funds transfer completion.','Create disbursement', rows.length, 0);
+  const dList = state.disbursements.filter(d=>!branchFilter || (state.applications.find(a=>a.id===d.application_id)||{}).branch_id===branchFilter);
+  c.innerHTML += `<div class="panel"><div class="panel-head"><h2>Disbursements queue</h2></div><p class="sub">Live across ${branchFilter?branchName(branchFilter):'all branches'}.</p>
+  <table><thead><tr><th>Loan reference</th><th>Borrower</th><th>Approved amount</th><th>Release method</th><th>Scheduled date</th><th>Status</th></tr></thead>
+  <tbody>${dList.length ? dList.map(d=>{const a=state.applications.find(x=>x.id===d.application_id)||{}; return `<tr><td>${a.code||'—'}</td><td>${a.applicant_name||'—'}</td><td>${peso(d.amount)}</td><td>${d.method}</td><td>${fmtDate(d.scheduled_date)}</td><td><span class="badge ok">Released</span></td></tr>`;}).join('') : '<tr class="empty-row"><td colspan="6">No records match your search.</td></tr>'}</tbody></table></div>`;
+  document.querySelector('[data-action="createDisb"]').addEventListener('click',()=>modalCreateDisbursement());
+}
+function modalCreateDisbursement(){
+  const pool = filteredApplications().filter(a=>a.stage==='Approved');
+  if(!pool.length){ openModal('Create disbursement', '<p style="color:var(--ink-soft);font-size:13px;">No approved applications are ready for release. Approve a case first.</p>', (d,close)=>close(), 'Close'); return; }
+  openModal('Create disbursement', `<div class="field"><label>Approved application</label><select name="appId" required>${appOptions(pool)}</select></div>
+  <div class="field-row"><div class="field"><label>Release method</label><select name="method"><option>Bank transfer</option><option>Cash</option><option>Check</option></select></div><div class="field"><label>Scheduled date</label><input name="date" type="date" required></div></div>`, async (data,close)=>{
+    const a = state.applications.find(x=>x.id===data.appId);
+    const {error:e1} = await sb.from('disbursements').insert({application_id:a.id, amount:a.amount, method:data.method, scheduled_date:data.date, created_by:currentUser.id});
+    if(dbErr(e1)) return;
+    const {error:e2} = await sb.from('applications').update({stage:'Disbursed', stage_entered_at:new Date().toISOString()}).eq('id', a.id);
+    if(dbErr(e2)) return;
+    const term = (state.products.find(p=>p.id===a.product_id)||{}).term || 12;
+    const dueDate = new Date(new Date(data.date).getTime()+30*86400000).toISOString().slice(0,10);
+    const {error:e3} = await sb.from('repayments').insert({client_id:a.client_id, application_id:a.id, loan_ref:a.code+' — installment 1', amount_due:Math.round(a.amount/term), due_date:dueDate, status:'Pending'});
+    if(dbErr(e3)) return;
+    showToast('Loan released — repayment schedule created'); close();
+    await fetchTable('disbursements'); await fetchTable('applications'); await fetchTable('repayments'); renderAll();
+  }, 'Release loan');
+}
+
+/* ============================================================
+   COLLECTIONS
+   ============================================================ */
+function renderCollections(){
+  const overdue = state.repayments.filter(r=>r.status==='Pending' && new Date(r.due_date).getTime()<Date.now());
+  const c = document.getElementById('content');
+  c.innerHTML = wsHeader('Collections control','Collections monitoring','Monitor payment schedules, follow up overdue accounts, and record collections.','Record collection', overdue.length, overdue.filter(r=>daysSince(r.due_date)>30).length);
+  c.innerHTML += `<div class="panel"><div class="panel-head"><h2>Collections monitoring queue</h2></div><p class="sub">Live across ${branchFilter?branchName(branchFilter):'all branches'}.</p>
+  <table><thead><tr><th>Borrower</th><th>Loan reference</th><th>Amount due</th><th>Due date</th><th>Days past due</th><th>Status</th></tr></thead>
+  <tbody>${overdue.length ? overdue.map(r=>`<tr><td>${clientName(r.client_id)}</td><td>${r.loan_ref||'—'}</td><td>${peso(r.amount_due)}</td><td>${fmtDate(r.due_date)}</td><td><span class="badge risk">${daysSince(r.due_date)}d</span></td><td><span class="badge warn">Overdue</span></td></tr>`).join('') : '<tr class="empty-row"><td colspan="6">No records match your search.</td></tr>'}</tbody></table></div>`;
+  document.querySelector('[data-action="recordColl"]').addEventListener('click',()=>{
+    if(!overdue.length){ showToast('No overdue accounts to record'); return; }
+    openModal('Record collection', `<div class="field"><label>Overdue account</label><select name="repId">${overdue.map(r=>'<option value="'+r.id+'">'+clientName(r.client_id)+' — '+(r.loan_ref||'')+' ('+peso(r.amount_due)+')</option>').join('')}</select></div>`, async (data,close)=>{
+      const {error} = await sb.from('repayments').update({status:'Paid', paid_date:new Date().toISOString()}).eq('id', data.repId);
+      if(dbErr(error)) return; showToast('Collection recorded'); close(); await fetchTable('repayments'); renderAll();
+    }, 'Record collection');
+  });
+}
+
+/* ============================================================
+   RISK & ALERTS — pulled from the server-side v_risk_alerts view
+   ============================================================ */
+async function renderRisk(){
+  const c = document.getElementById('content');
+  c.innerHTML = `<div class="panel">Loading live alerts…</div>`;
+  const {data, error} = await sb.from('v_risk_alerts').select('*').order('detected',{ascending:false});
+  if(dbErr(error)) return;
+  const alerts = branchFilter ? data.filter(a=> (a.related||'').startsWith((state.settings.app_prefix||'CBC')) ) : data; // branch filtering handled server-side via applications join in a fuller version
+  c.innerHTML = wsHeader('Risk control center','Risk & exception alerts','Resolve policy exceptions, overdue decisions, and portfolio risk signals. Computed server-side.','Export alert log', data.length, data.filter(a=>a.priority==='High').length);
+  c.innerHTML += `<div class="panel"><div class="panel-head"><h2>Open alert register</h2></div><p class="sub">Live from the database view <code>v_risk_alerts</code>.</p>
+  <table><thead><tr><th>Priority</th><th>Alert</th><th>Related</th><th>Owner</th><th>Detected</th></tr></thead>
+  <tbody>${data.length ? data.map(a=>`<tr><td><span class="badge ${a.priority==='High'?'risk':a.priority==='Medium'?'warn':'neutral'}">${a.priority}</span></td><td>${a.message}</td><td>${a.related||'—'}</td><td>${a.owner||'—'}</td><td>${fmtDate(a.detected)}</td></tr>`).join('') : '<tr class="empty-row"><td colspan="5">No open alerts.</td></tr>'}</tbody></table></div>`;
+  document.querySelector('[data-action="exportAlerts"]').addEventListener('click',()=>{
+    downloadCSV('risk-alerts.csv', [['Priority','Alert','Related','Owner','Detected'], ...data.map(a=>[a.priority,a.message,a.related,a.owner,fmtDate(a.detected)])]);
+    showToast('Alert log exported');
+  });
+}
+function wsHeader(eyebrow,title,desc,actionLabel,queueCount,attentionCount){
+  const map = {'Assign evaluator':'assignEval','Run scorecard':'runScorecard','Open checklist':'openChecklist','Open decision queue':'openQueue','Create disbursement':'createDisb','Record collection':'recordColl','Export alert log':'exportAlerts'};
+  return `<div class="page-head"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${desc}</p></div><button class="btn primary" data-action="${map[actionLabel]}">${ic('plus')} ${actionLabel}</button></div>
+  <div class="kpi-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:18px;"><div class="kpi"><div class="lbl">Work queue</div><div class="val">${queueCount}</div></div><div class="kpi"><div class="lbl">Requires attention</div><div class="val">${attentionCount}</div></div><div class="kpi"><div class="lbl">Performance</div><div class="val">${queueCount?Math.round(((queueCount-attentionCount)/queueCount)*100):100}%</div></div></div>`;
+}
+
+/* ============================================================
+   BRANCHES
+   ============================================================ */
+function renderBranches(){
+  const c = document.getElementById('content');
+  c.innerHTML = `<div class="page-head"><div><h1>Branches</h1><p>Manage locations and branch operating status.</p></div><button class="btn primary" data-action="addBranch">${ic('plus')} Add branch</button></div>
+  <div class="two-col" style="grid-template-columns:repeat(2,1fr);">${state.branches.map(b=>`<div class="panel"><div style="display:flex;justify-content:space-between;"><div class="ic" style="width:34px;height:34px;border-radius:8px;background:var(--ok-bg);color:var(--ok-ink);display:flex;align-items:center;justify-content:center;">${ic('landmark')}</div><span class="badge ok">${b.status}</span></div>
+  <h3 style="color:var(--blue);margin:12px 0 4px;font-size:15px;">${b.name}</h3><p style="color:var(--ink-soft);font-size:12.5px;margin:0 0 10px;">${b.address||''}</p>
+  <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-soft);"><span>${b.phone||''}</span><button class="btn sm" data-editbranch="${b.id}">Manage →</button></div></div>`).join('') || '<p>No branches yet.</p>'}</div>`;
+  document.querySelector('[data-action="addBranch"]').addEventListener('click',()=>{
+    openModal('Add branch', `<div class="field"><label>Branch name</label><input name="name" required></div><div class="field"><label>Address</label><input name="address" required></div><div class="field"><label>Contact number</label><input name="phone"></div>`, async (data,close)=>{
+      const {error} = await sb.from('branches').insert({name:data.name, address:data.address, phone:data.phone});
+      if(dbErr(error)) return; showToast('Branch added'); close(); await fetchTable('branches'); renderAll();
+    }, 'Add branch');
+  });
+  c.querySelectorAll('[data-editbranch]').forEach(b=>b.addEventListener('click',()=>{
+    const br = state.branches.find(x=>x.id===b.dataset.editbranch);
+    openModal('Manage branch', `<div class="field"><label>Branch name</label><input name="name" value="${br.name}" required></div><div class="field"><label>Address</label><input name="address" value="${br.address||''}" required></div><div class="field"><label>Contact number</label><input name="phone" value="${br.phone||''}"></div><div class="field"><label>Status</label><select name="status"><option ${br.status==='Active'?'selected':''}>Active</option><option ${br.status==='Inactive'?'selected':''}>Inactive</option></select></div>`, async (data,close)=>{
+      const {error} = await sb.from('branches').update({name:data.name, address:data.address, phone:data.phone, status:data.status}).eq('id', br.id);
+      if(dbErr(error)) return; showToast('Branch updated'); close(); await fetchTable('branches'); renderAll();
+    }, 'Save changes');
+  }));
+}
+
+/* ============================================================
+   USERS & ROLES
+   ============================================================ */
+function renderUsers(){
+  const c = document.getElementById('content');
+  c.innerHTML = `<div class="page-head"><div><h1>Users &amp; roles</h1><p>Control system access and user permissions.</p></div></div>
+  <div class="panel"><p class="sub">Staff accounts are created in Supabase Authentication (invite-only). Once someone signs in for the first time, their profile appears here — set their role and branch below.</p>
+  <table><thead><tr><th>User</th><th>Role</th><th>Branch</th><th>Status</th><th></th></tr></thead>
+  <tbody>${state.profiles.length ? state.profiles.map(u=>`<tr><td>${u.full_name}</td><td>${u.role}</td><td>${branchName(u.branch_id)}</td><td><span class="badge ok">${u.status}</span></td><td><button class="btn sm" data-edituser="${u.id}">Edit</button></td></tr>`).join('') : '<tr class="empty-row"><td colspan="5">No staff have signed in yet.</td></tr>'}</tbody></table></div>`;
+  c.querySelectorAll('[data-edituser]').forEach(b=>b.addEventListener('click',()=>{
+    const u = state.profiles.find(x=>x.id===b.dataset.edituser);
+    openModal('Edit user', `<div class="field"><label>Full name</label><input name="fullName" value="${u.full_name}" required></div>
+    <div class="field"><label>Role</label><select name="role"><option ${u.role==='Loan Officer'?'selected':''}>Loan Officer</option><option ${u.role==='Branch Manager'?'selected':''}>Branch Manager</option><option ${u.role==='Underwriter'?'selected':''}>Underwriter</option><option ${u.role==='Collections Officer'?'selected':''}>Collections Officer</option><option ${u.role==='Administrator'?'selected':''}>Administrator</option></select></div>
+    <div class="field"><label>Branch</label><select name="branch">${branchOptions(u.branch_id)}</select></div>`, async (data,close)=>{
+      const {error} = await sb.from('profiles').update({full_name:data.fullName, role:data.role, branch_id:data.branch}).eq('id', u.id);
+      if(dbErr(error)) return; showToast('User updated'); close(); await fetchTable('profiles'); renderAll();
+    }, 'Save changes');
+  }));
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+function renderSettings(){
+  const c = document.getElementById('content');
+  const tabs = [['general','General'],['loan','Loan processing'],['notify','Notifications'],['security','Security'],['audit','Audit log']];
+  c.innerHTML = `<div class="page-head"><div><h1>System settings</h1><p>Manage defaults, alerts, and organization preferences.</p></div></div>
+  <div class="tabbed"><div class="tablist">${tabs.map(t=>`<button data-tab="${t[0]}" class="${settingsTab===t[0]?'active':''}">${t[1]}</button>`).join('')}</div><div id="settingsBody"></div></div>`;
+  c.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{ settingsTab=b.dataset.tab; renderSettings(); }));
+  const body = document.getElementById('settingsBody'); const s = state.settings;
+  if(settingsTab==='general'){
+    body.innerHTML = `<div class="panel"><h2>Organization details</h2><p class="sub">Name, contact details, and business address</p>
+    <form id="genForm"><div class="field"><label>Organization name</label><input name="orgName" value="${s.org_name||''}"></div><div class="field"><label>Contact number</label><input name="contact" value="${s.contact||''}"></div><div class="field"><label>Business address</label><input name="address" value="${s.address||''}"></div><button class="btn primary" type="submit">Save changes</button></form></div>`;
+    document.getElementById('genForm').addEventListener('submit', async e=>{ e.preventDefault(); const fd=new FormData(e.target); const {error}=await sb.from('settings').update({org_name:fd.get('orgName'), contact:fd.get('contact'), address:fd.get('address')}).eq('id',1); if(dbErr(error))return; showToast('Settings saved'); await fetchTable('settings'); });
+  } else if(settingsTab==='loan'){
+    body.innerHTML = `<div class="panel"><h2>Loan defaults</h2><p class="sub">Application numbers, SLA, and default rates</p>
+    <form id="loanForm"><div class="field-row"><div class="field"><label>SLA target (days per stage)</label><input name="slaDays" type="number" value="${s.sla_days}"></div><div class="field"><label>Default interest rate (%/month)</label><input name="defaultRate" type="number" step="0.1" value="${s.default_rate}"></div></div><div class="field"><label>Application ID prefix</label><input name="appPrefix" value="${s.app_prefix}"></div><button class="btn primary" type="submit">Save changes</button></form></div>`;
+    document.getElementById('loanForm').addEventListener('submit', async e=>{ e.preventDefault(); const fd=new FormData(e.target); const {error}=await sb.from('settings').update({sla_days:Number(fd.get('slaDays')), default_rate:Number(fd.get('defaultRate')), app_prefix:fd.get('appPrefix')}).eq('id',1); if(dbErr(error))return; showToast('Settings saved'); await fetchTable('settings'); });
+  } else if(settingsTab==='notify'){
+    body.innerHTML = `<div class="panel"><h2>Notifications</h2><p class="sub">Configure due date, overdue, and application alerts</p>
+    <div class="toggle-row"><div><div class="t">Notify on new application</div><div class="d">Alert staff when an application is submitted</div></div><button class="switch ${s.notify_new_app?'on':''}" id="tNewApp"><span class="knob"></span></button></div>
+    <div class="toggle-row"><div><div class="t">Notify on overdue payments</div><div class="d">Alert collections when a repayment passes due date</div></div><button class="switch ${s.notify_overdue?'on':''}" id="tOverdue"><span class="knob"></span></button></div>
+    <div class="field" style="margin-top:10px;"><label>Remind before due date (days)</label><input id="tDueDays" type="number" value="${s.notify_due_days}" style="max-width:120px;"></div></div>`;
+    document.getElementById('tNewApp').addEventListener('click', async ()=>{ const {error}=await sb.from('settings').update({notify_new_app:!s.notify_new_app}).eq('id',1); if(dbErr(error))return; await fetchTable('settings'); renderSettings(); });
+    document.getElementById('tOverdue').addEventListener('click', async ()=>{ const {error}=await sb.from('settings').update({notify_overdue:!s.notify_overdue}).eq('id',1); if(dbErr(error))return; await fetchTable('settings'); renderSettings(); });
+    document.getElementById('tDueDays').addEventListener('change', async e=>{ const {error}=await sb.from('settings').update({notify_due_days:Number(e.target.value)}).eq('id',1); if(dbErr(error))return; showToast('Settings saved'); await fetchTable('settings'); });
+  } else if(settingsTab==='security'){
+    body.innerHTML = `<div class="panel"><h2>Security</h2><p class="sub">Password policy and login session controls</p>
+    <div class="field"><label>Session timeout (minutes)</label><input id="tTimeout" type="number" value="${s.session_timeout}" style="max-width:140px;"></div>
+    <div class="toggle-row"><div><div class="t">Require two-factor authentication</div><div class="d">Configure in Supabase Auth settings; this flag documents the policy.</div></div><button class="switch ${s.require_2fa?'on':''}" id="t2fa"><span class="knob"></span></button></div></div>`;
+    document.getElementById('tTimeout').addEventListener('change', async e=>{ const {error}=await sb.from('settings').update({session_timeout:Number(e.target.value)}).eq('id',1); if(dbErr(error))return; showToast('Settings saved'); await fetchTable('settings'); });
+    document.getElementById('t2fa').addEventListener('click', async ()=>{ const {error}=await sb.from('settings').update({require_2fa:!s.require_2fa}).eq('id',1); if(dbErr(error))return; await fetchTable('settings'); renderSettings(); });
+  } else if(settingsTab==='audit'){
+    body.innerHTML = `<div class="panel"><div class="panel-head"><h2>Audit log</h2></div><p class="sub">Every insert, update, and delete — recorded automatically by the database, latest 200 entries.</p>
+    <table><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Table</th><th>Record</th></tr></thead><tbody>${state.auditLog.length ? state.auditLog.map(l=>`<tr><td>${new Date(l.created_at).toLocaleString('en-PH')}</td><td>${l.actor_name||'—'}</td><td><span class="badge neutral">${l.action}</span></td><td>${l.entity}</td><td style="font-size:11.5px;color:var(--ink-soft);">${l.entity_id}</td></tr>`).join('') : '<tr class="empty-row"><td colspan="5">No activity yet.</td></tr>'}</tbody></table></div>`;
+  }
+}
+
+/* ============================================================
+   HELP
+   ============================================================ */
+function renderHelp(){
+  const c = document.getElementById('content');
+  c.innerHTML = `<div class="page-head"><div><h1>Help center</h1><p>Quick guidance for getting the most out of loan monitoring.</p></div></div>
+  <div class="help-grid">
+  <div class="help-card"><h3>Getting started</h3><ol><li>Add your branches under <b>Branches</b>.</li><li>Set up your <b>Loan products</b> and rates.</li><li>Add a <b>Client</b> or create a <b>Loan application</b> directly — the applicant form now captures the full CBC Client Information Form.</li><li>Move applications forward with <b>Advance →</b>.</li><li>Release funds from <b>Disbursements</b> — a repayment schedule is created automatically.</li></ol></div>
+  <div class="help-card"><h3>How this stays live</h3><ul><li>Every record lives in a shared Postgres database, not your browser.</li><li>Changes anyone makes appear on everyone else's screen within a second or two, automatically.</li><li>Credit scores and SLA timers are calculated by the database itself, so they can't be altered from a browser.</li></ul></div>
+  <div class="help-card"><h3>Frequently asked</h3><ul><li><b>I can't sign in.</b> Ask an administrator to create your account in Supabase → Authentication → Users.</li><li><b>Why is a branch's data missing?</b> Check the branch selector in the sidebar.</li><li><b>Who changed this record?</b> Check Settings → Audit log.</li></ul></div>
+  <div class="help-card"><h3>Need more help?</h3><p style="color:var(--ink-soft);font-size:13px;">See SETUP_GUIDE.md for how this system was connected to its database, and how to add more staff, branches, or report types.</p></div>
+  </div>`;
+}
+</script>
+</body>
+</html>
